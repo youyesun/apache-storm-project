@@ -1,4 +1,4 @@
-package storm;
+package storm.spout;
 
 import backtype.storm.Config;
 import backtype.storm.LocalCluster;
@@ -16,6 +16,7 @@ import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 import backtype.storm.utils.Utils;
 
+import com.sun.org.apache.xpath.internal.operations.*;
 import twitter4j.conf.ConfigurationBuilder;
 import twitter4j.TwitterStream;
 import twitter4j.TwitterStreamFactory;
@@ -23,7 +24,9 @@ import twitter4j.Status;
 import twitter4j.StatusDeletionNotice;
 import twitter4j.StatusListener;
 import twitter4j.StallWarning;
+import twitter4j.FilterQuery;
 
+import java.lang.String;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -55,7 +58,14 @@ public class TweetSpout extends BaseRichSpout
     public void onStatus(Status status)
     {
       // add the tweet into the queue buffer
-      queue.offer(status.getText());
+      String geoInfo = "NA";
+      if(status.getGeoLocation()!=null){
+        geoInfo = String.valueOf(status.getGeoLocation().getLatitude())+
+                ","+String.valueOf(status.getGeoLocation().getLongitude());
+        queue.offer(status.getText()+"DELIMITER" + geoInfo);
+      }
+
+
     }
 
     @Override
@@ -128,9 +138,15 @@ public class TweetSpout extends BaseRichSpout
     // get an instance of twitter stream
     twitterStream = fact.getInstance();
 
+    FilterQuery tweetFilterQuery = new FilterQuery(); // See
+    tweetFilterQuery.locations(new double[][]{
+            new double[]{-124.848974,24.396308},
+            new double[]{-66.885444,49.384358 }
+    });
+    tweetFilterQuery.language(new String[]{"en"});
     // provide the handler for twitter stream
     twitterStream.addListener(new TweetListener());
-
+    twitterStream.filter(tweetFilterQuery);
     // start the sampling of tweets
     twitterStream.sample();
   }
@@ -139,17 +155,21 @@ public class TweetSpout extends BaseRichSpout
   public void nextTuple()
   {
     // try to pick a tweet from the buffer
-    String ret = queue.poll();
-
+    String ret = (String)queue.poll();
+    String tweet = null;
+    String geoinfo = null;
     // if no tweet is available, wait for 50 ms and return
     if (ret==null)
     {
       Utils.sleep(50);
       return;
+    }else{
+      tweet = ret.split("DELIMITER")[0];
+      geoinfo = ret.split("DELIMITER")[1];
+      if(geoinfo!= null && !geoinfo.equals("NA")){
+        collector.emit(new Values(tweet, geoinfo));
+      }
     }
-
-    // now emit the tweet to next stage bolt
-    collector.emit(new Values(ret));
   }
 
   @Override
@@ -180,6 +200,6 @@ public class TweetSpout extends BaseRichSpout
   {
     // tell storm the schema of the output tuple for this spout
     // tuple consists of a single column called 'tweet'
-    outputFieldsDeclarer.declare(new Fields("tweet"));
+    outputFieldsDeclarer.declare(new Fields("tweet","geoinfo"));
   }
 }
