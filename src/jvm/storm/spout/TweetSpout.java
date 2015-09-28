@@ -147,8 +147,8 @@ public class TweetSpout extends BaseRichSpout
     // provide the handler for twitter stream
     twitterStream.addListener(new TweetListener());
     twitterStream.filter(tweetFilterQuery);
-    // start the sampling of tweets
-    twitterStream.sample();
+    // don't use .sample, otherwise filter will be ignored..
+    //twitterStream.sample();
   }
 
   @Override
