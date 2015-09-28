@@ -1,4 +1,4 @@
-package storm;
+package storm.bolt;
 
 import backtype.storm.Config;
 import backtype.storm.LocalCluster;
@@ -20,15 +20,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * A bolt that counts the words that it receives
+ * A bolt that counts the average sentiment
  */
-public class CountBolt extends BaseRichBolt
+public class CountAverageSentimentBolt extends BaseRichBolt
 {
-  // To output tuples from this bolt to the next stage bolts, if any
   private OutputCollector collector;
 
-  // Map to store the count of the words
-  private Map<String, Long> countMap;
+  // Map to store the count of the words and average sentiment
+  private Map<String, Integer> countMap;
+  private Map<String, Double> sentimentMap;
 
   @Override
   public void prepare(
@@ -36,36 +36,28 @@ public class CountBolt extends BaseRichBolt
       TopologyContext         topologyContext,
       OutputCollector         outputCollector)
   {
-
-    // save the collector for emitting tuples
     collector = outputCollector;
-
-    // create and initialize the map
-    countMap = new HashMap<String, Long>();
+    countMap = new HashMap<String, Integer>();
+    sentimentMap = new HashMap<String, Double>();
   }
 
   @Override
   public void execute(Tuple tuple)
   {
-    // get the word from the 1st column of incoming tuple
-    String word = tuple.getString(0);
-
-    // check if the word is present in the map
-    if (countMap.get(word) == null) {
-
-      // not present, add the word with a count of 1
-      countMap.put(word, 1L);
+    String state = tuple.getString(1);
+    Double sentiment = tuple.getDouble(0);
+    if (countMap.get(state) == null) {
+        countMap.put(state, 1);
+        sentimentMap.put(state, sentiment);
     } else {
-
-      // already there, hence get the count
-      Long val = countMap.get(word);
-
-      // increment the count and save it to the map
-      countMap.put(word, ++val);
+        int val = countMap.get(state);
+        double avgSentiment = (sentimentMap.get(state)*val + sentiment)/(val + 1);
+        countMap.put(state, ++val);
+        sentimentMap.put(state, avgSentiment);
     }
 
     // emit the word and count
-    collector.emit(new Values(word, countMap.get(word)));
+    collector.emit(new Values(sentimentMap.get(state), state));
   }
 
   @Override
@@ -75,6 +67,6 @@ public class CountBolt extends BaseRichBolt
     // tuple consists of a two columns called 'word' and 'count'
 
     // declare the first column 'word', second column 'count'
-    outputFieldsDeclarer.declare(new Fields("word","count"));
+    outputFieldsDeclarer.declare(new Fields("avg-sentiment","state"));
   }
 }
