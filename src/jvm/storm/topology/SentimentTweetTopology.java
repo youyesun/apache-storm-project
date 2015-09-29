@@ -30,10 +30,10 @@ class SentimentTweetTopology
     // now create the tweet spout with the credentials
     // credential
     TweetSpout tweetSpout = new TweetSpout(
-    "w5OUweBTPAQldTvLoBcTWF9jS",
-    "mIMIWzMxFYclje2GBn7NYT1BljM0kaiDuI854nMOYBvs99Xl5Y",
-    "3670950196-EdbNcU9S6FCNX5mO7ORxMzBqbxCc3Bq09xlFxN7",
-    "iZt7pJAOtfOgyrGjFgis6uB5UKPaSxGOjXWlFAKIJbiNP"
+    "",
+    "",
+    "",
+    ""
     );
 
     // attach the tweet spout to the topology - parallelism of 1
@@ -42,8 +42,8 @@ class SentimentTweetTopology
     builder.setBolt("sentiment-bolt", new SentimentBolt(),10).shuffleGrouping("state-bolt");
     builder.setBolt("count-avg-sentiment-bolt", new CountAverageSentimentBolt(), 10).
                     fieldsGrouping("sentiment-bolt", new Fields("state"));
-    builder.setBolt("test-bolt", new TestBolt(), 1).globalGrouping("count-avg-sentiment-bolt");
-
+    //builder.setBolt("test-bolt", new TestBolt(), 1).globalGrouping("count-avg-sentiment-bolt");
+    builder.setBolt("report-bolt", new ReportBolt(), 1).globalGrouping("count-avg-sentiment-bolt");
     // create the default config object
     Config conf = new Config();
 
