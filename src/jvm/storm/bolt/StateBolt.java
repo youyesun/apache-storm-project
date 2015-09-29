@@ -47,13 +47,11 @@ public class StateBolt extends BaseRichBolt
     Double latitude = Double.parseDouble(geoinfo.substring(0, commapos));
     Double longitude = Double.parseDouble(geoinfo.substring(commapos + 1));
     String st = lookup.getStateByGeo(latitude, longitude);
-    String res = "latitube: " + Double.toString(latitude) +" longitude: "+
-                 Double.toString(longitude) + " state: " + st;
-    collector.emit(new Values(res));
+    collector.emit(new Values(tweet, st));
   }
 
   public void declareOutputFields(OutputFieldsDeclarer outputFieldsDeclarer)
   {
-    outputFieldsDeclarer.declare(new Fields("stinfo"));
+    outputFieldsDeclarer.declare(new Fields("tweet", "state"));
   }
 }
