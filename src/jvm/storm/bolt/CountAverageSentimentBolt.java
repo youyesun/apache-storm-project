@@ -25,6 +25,8 @@ import java.util.Map;
 public class CountAverageSentimentBolt extends BaseRichBolt
 {
   private OutputCollector collector;
+  private long intervalToReport = 20;
+  private long lastReportTime = System.currentTimeMillis();
 
   // Map to store the count of the words and average sentiment
   private Map<String, Integer> countMap;
@@ -57,7 +59,32 @@ public class CountAverageSentimentBolt extends BaseRichBolt
     }
 
     // emit the word and count
-    collector.emit(new Values(sentimentMap.get(state), state));
+    if (System.currentTimeMillis() - lastReportTime >= intervalToReport) {
+        double sentimentAvg = sentimentMap.get(state);
+        String sentimentReadable = "";
+
+        if(sentimentAvg < 0.5){
+          sentimentReadable = "Super Unhappy";
+        }else if(sentimentAvg < 1){
+          sentimentReadable = "Very Unhappy";
+        }else if(sentimentAvg < 1.5){
+          sentimentReadable = "Unhappy";
+        }else if(sentimentAvg < 1.75){
+          sentimentReadable = "Little Unhappy";
+        }else if(sentimentAvg < 2.25){
+          sentimentReadable = "Neutral";
+        }else if(sentimentAvg < 2.5){
+          sentimentReadable = "Little Happy";
+        }else if(sentimentAvg < 3.0){
+          sentimentReadable = "Happy";
+        }else if(sentimentAvg < 3.5){
+          sentimentReadable = "Very Happy";
+        }else{
+          sentimentReadable = "Super Happy";
+        }
+        collector.emit(new Values(sentimentReadable, state));
+        lastReportTime = System.currentTimeMillis();
+    }
   }
 
   @Override
