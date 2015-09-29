@@ -44,7 +44,7 @@ public class SentimentBolt extends BaseRichBolt
 
     String tweet = tuple.getString(0);
     String state = tuple.getString(1);
-    Integer tweetSentiment = sentiment.findSentiment(tweet);
+    Double tweetSentiment = sentiment.findSentiment(tweet);
     collector.emit(new Values(tweetSentiment, state));
   }
 
